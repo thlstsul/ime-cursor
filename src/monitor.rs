@@ -1,7 +1,7 @@
 use euro_focus::subscribe_focus_changes;
 use rdev::{EventType, Key, listen};
 
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Sender, channel};
 use std::thread::{self, JoinHandle};
 use std::time::Instant;
 
@@ -32,11 +32,18 @@ impl Monitor {
         let _ = self.cursor.reset_cursor();
         self.set_cursor();
 
-        let (delay_sender, delay_receiver) = channel();
-        let _delay_send_handle = Self::delay_send(receiver, delay_sender);
+        let mut last_time: Option<Instant> = None;
+        loop {
+            if let Some(l) = last_time
+                && l.elapsed().as_millis() > 150
+            {
+                self.set_cursor();
+                last_time = None;
+            }
 
-        while let Ok(_) = delay_receiver.recv() {
-            self.set_cursor();
+            if receiver.try_recv().is_ok() {
+                last_time = Some(Instant::now());
+            }
         }
     }
 
@@ -48,27 +55,6 @@ impl Monitor {
                 let _ = self.cursor.reset_cursor();
             }
         }
-    }
-
-    fn delay_send(
-        receiver: Receiver<MayChangeIME>,
-        delay_sender: Sender<MayChangeIME>,
-    ) -> JoinHandle<()> {
-        thread::spawn(move || {
-            let mut last_time: Option<(Instant, MayChangeIME)> = None;
-            loop {
-                if let Some((l, _)) = last_time
-                    && l.elapsed().as_millis() > 150
-                    && let Some((_, e)) = last_time.take()
-                {
-                    let _ = delay_sender.send(e);
-                }
-
-                if let Ok(e) = receiver.try_recv() {
-                    last_time = Some((Instant::now(), e));
-                }
-            }
-        })
     }
 
     fn listen_keyboard(sender: Sender<MayChangeIME>) -> JoinHandle<()> {
@@ -96,7 +82,7 @@ impl Monitor {
         thread::spawn(move || {
             let receiver = subscribe_focus_changes().expect("启动窗口监听失败");
 
-            while let Ok(_) = receiver.recv() {
+            while receiver.recv().is_ok() {
                 let _ = sender.send(MayChangeIME);
             }
         })
