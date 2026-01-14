@@ -2,6 +2,7 @@
 
 use crate::monitor::Monitor;
 
+mod channel;
 mod cursor;
 mod ime;
 mod monitor;

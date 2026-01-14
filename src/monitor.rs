@@ -1,10 +1,10 @@
 use euro_focus::subscribe_focus_changes;
 use rdev::{EventType, Key, listen};
 
-use std::sync::mpsc::{Sender, channel};
 use std::thread::{self, JoinHandle};
-use std::time::Instant;
+use std::time::Duration;
 
+use crate::channel::{Sender, channel};
 use crate::cursor::Cursor;
 use crate::ime::{IMEControl, InputMode};
 
@@ -24,7 +24,7 @@ impl Monitor {
     }
 
     pub fn run(&mut self) {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = channel(Duration::from_millis(150));
 
         let _keyboard_handle = Self::listen_keyboard(sender.clone());
         let _window_handle = Self::listen_window(sender);
@@ -32,18 +32,8 @@ impl Monitor {
         let _ = self.cursor.reset_cursor();
         self.set_cursor();
 
-        let mut last_time: Option<Instant> = None;
-        loop {
-            if let Some(l) = last_time
-                && l.elapsed().as_millis() > 150
-            {
-                self.set_cursor();
-                last_time = None;
-            }
-
-            if receiver.try_recv().is_ok() {
-                last_time = Some(Instant::now());
-            }
+        while receiver.recv().is_ok() {
+            self.set_cursor();
         }
     }
 
