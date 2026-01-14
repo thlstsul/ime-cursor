@@ -1,5 +1,6 @@
+use anyhow::{Result, anyhow, bail};
 use std::collections::VecDeque;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar, LockResult, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -30,11 +31,11 @@ struct Inner<T> {
 
 impl<T> Sender<T> {
     /// 发送事件，如果已有事件在等待，则覆盖它
-    pub fn send(&self, data: T) -> Result<(), &'static str> {
-        let mut current_event = self.inner.current_event.lock().unwrap();
+    pub fn send(&self, data: T) -> Result<()> {
+        let mut current_event = self.inner.current_event.lock().map_lock_err()?;
 
-        if !*self.inner.active.lock().unwrap() {
-            return Err("Channel is closed");
+        if !*self.inner.active.lock().map_lock_err()? {
+            bail!("Channel is closed");
         }
 
         // 创建新事件，安排在延迟后发送
@@ -51,15 +52,15 @@ impl<T> Sender<T> {
 
     /// 立即发送事件，不经过延迟
     #[allow(dead_code)]
-    pub fn send_immediate(&self, data: T) -> Result<(), &'static str> {
-        let mut queue = self.inner.queue.lock().unwrap();
+    pub fn send_immediate(&self, data: T) -> Result<()> {
+        let mut queue = self.inner.queue.lock().map_lock_err()?;
 
-        if !*self.inner.active.lock().unwrap() {
-            return Err("Channel is closed");
+        if !*self.inner.active.lock().map_lock_err()? {
+            bail!("Channel is closed");
         }
 
         // 清除当前待发送事件
-        *self.inner.current_event.lock().unwrap() = None;
+        *self.inner.current_event.lock().map_lock_err()? = None;
 
         // 立即加入队列
         queue.push_back(Event {
@@ -75,36 +76,35 @@ impl<T> Sender<T> {
 
 impl<T> Receiver<T> {
     /// 接收事件，阻塞直到有事件可用或通道关闭
-    pub fn recv(&self) -> Result<T, &'static str> {
-        let mut queue = self.inner.queue.lock().unwrap();
+    pub fn recv(&self) -> Result<T> {
+        let mut queue = self.inner.queue.lock().map_lock_err()?;
 
         // 等待队列中有事件或通道关闭
         while queue.is_empty() {
-            if !*self.inner.active.lock().unwrap() {
-                println!("Queue is empty");
-                return Err("Channel is closed");
+            if !*self.inner.active.lock().map_lock_err()? {
+                bail!("Channel is closed");
             }
-            queue = self.inner.condvar.wait(queue).unwrap();
+            queue = self.inner.condvar.wait(queue).map_lock_err()?;
         }
 
         if let Some(event) = queue.pop_front() {
             Ok(event.data)
         } else {
-            Err("Channel is empty")
+            bail!("Channel is empty")
         }
     }
 
     /// 尝试接收事件，立即返回
     #[allow(dead_code)]
-    pub fn try_recv(&self) -> Result<T, &'static str> {
-        let mut queue = self.inner.queue.lock().unwrap();
+    pub fn try_recv(&self) -> Result<T> {
+        let mut queue = self.inner.queue.lock().map_lock_err()?;
 
         if let Some(event) = queue.pop_front() {
             Ok(event.data)
-        } else if !*self.inner.active.lock().unwrap() {
-            Err("Channel is closed")
+        } else if !*self.inner.active.lock().map_lock_err()? {
+            bail!("Channel is closed")
         } else {
-            Err("Channel is empty")
+            bail!("Channel is empty")
         }
     }
 }
@@ -223,6 +223,16 @@ impl<T> Drop for Receiver<T> {
         // 接收端被丢弃时，关闭通道
         *self.inner.active.lock().unwrap() = false;
         self.inner.condvar.notify_all();
+    }
+}
+
+trait MapMutexLockError<T> {
+    fn map_lock_err(self) -> Result<T>;
+}
+
+impl<T> MapMutexLockError<T> for LockResult<T> {
+    fn map_lock_err(self) -> Result<T> {
+        self.map_err(|e| anyhow!("{}", e))
     }
 }
 
