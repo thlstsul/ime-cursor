@@ -1,3 +1,4 @@
+use anyhow::Result;
 use euro_focus::subscribe_focus_changes;
 use rdev::{EventType, Key, listen};
 
@@ -16,11 +17,11 @@ pub struct Monitor {
 }
 
 impl Monitor {
-    pub fn new() -> Self {
-        Monitor {
+    pub fn new() -> Result<Self> {
+        Ok(Monitor {
             ime: IMEControl::new(500, true),
-            cursor: Cursor::new(),
-        }
+            cursor: Cursor::new()?,
+        })
     }
 
     pub fn run(&mut self) {
@@ -29,22 +30,21 @@ impl Monitor {
         let _keyboard_handle = Self::listen_keyboard(sender.clone());
         let _window_handle = Self::listen_window(sender);
 
-        let _ = self.cursor.reset_cursor();
-        self.set_cursor();
-
         while receiver.recv().is_ok() {
-            self.set_cursor();
+            let _ = self.set_cursor();
         }
     }
 
-    fn set_cursor(&mut self) {
+    fn set_cursor(&mut self) -> Result<()> {
         if let Ok(mode) = self.ime.get_input_mode() {
             if mode.is_cn {
-                let _ = self.cursor.set_chinesn_cursor();
+                self.cursor.set_chinesn_cursor()?;
             } else {
-                let _ = self.cursor.reset_cursor();
+                self.cursor.set_default_cursor()?;
             }
         }
+
+        Ok(())
     }
 
     fn listen_keyboard(sender: Sender<MayChangeIME>) -> JoinHandle<()> {

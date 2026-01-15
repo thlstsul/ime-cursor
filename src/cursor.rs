@@ -13,8 +13,10 @@ pub struct Cursor {
 }
 
 impl Cursor {
-    pub fn new() -> Self {
-        Cursor { is_cn: false }
+    pub fn new() -> Result<Self> {
+        Self::reset_cursor()?;
+
+        Ok(Cursor { is_cn: false })
     }
 
     pub fn set_chinesn_cursor(&mut self) -> Result<()> {
@@ -31,16 +33,22 @@ impl Cursor {
         Ok(())
     }
 
-    pub fn reset_cursor(&mut self) -> Result<()> {
+    pub fn set_default_cursor(&mut self) -> Result<()> {
         if !self.is_cn {
             return Ok(());
         }
 
+        Self::reset_cursor()?;
+        self.is_cn = false;
+
+        Ok(())
+    }
+
+    fn reset_cursor() -> Result<()> {
         unsafe {
             SetSystemCursor(LoadCursorFromFileW(ORI_ARROW_CURSOR_PATH)?, OCR_NORMAL)?;
             SetSystemCursor(LoadCursorFromFileW(ORI_IBEAM_CURSOR_PATH)?, OCR_IBEAM)?;
         }
-        self.is_cn = false;
 
         Ok(())
     }
