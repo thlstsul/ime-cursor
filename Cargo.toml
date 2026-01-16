@@ -15,3 +15,7 @@ windows = { version = "0.62.2", features = [
     "Win32_UI_Input_Ime",
     "Win32_UI_Input_KeyboardAndMouse",
 ]}
+
+[package.metadata.packager]
+before-packaging-command = "cargo build --release"
+resources = [ "assets" ]
