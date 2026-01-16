@@ -1,12 +1,16 @@
 use windows::{
-    Win32::UI::WindowsAndMessaging::{LoadCursorFromFileW, OCR_IBEAM, OCR_NORMAL, SetSystemCursor},
+    Win32::UI::WindowsAndMessaging::{
+        LoadCursorFromFileW, OCR_HAND, OCR_IBEAM, OCR_NORMAL, SetSystemCursor,
+    },
     core::{PCWSTR, Result, w},
 };
 
 const CHI_ARROW_CURSOR_PATH: PCWSTR = w!(".\\assets\\arrow_chi.cur");
-const CHI_IBEAM_CURSOT_PATH: PCWSTR = w!(".\\assets\\ibeam_chi.cur");
+const CHI_IBEAM_CURSOR_PATH: PCWSTR = w!(".\\assets\\ibeam_chi.cur");
+const CHI_LINK_CURSOR_PATH: PCWSTR = w!(".\\assets\\link_chi.cur");
 const ORI_ARROW_CURSOR_PATH: PCWSTR = w!("C:\\Windows\\Cursors\\aero_arrow.cur");
 const ORI_IBEAM_CURSOR_PATH: PCWSTR = w!("C:\\Windows\\Cursors\\beam_i.cur");
+const ORI_LINK_CURSOR_PATH: PCWSTR = w!("C:\\Windows\\Cursors\\aero_link.cur");
 
 pub struct Cursor {
     is_cn: bool,
@@ -26,7 +30,8 @@ impl Cursor {
 
         unsafe {
             SetSystemCursor(LoadCursorFromFileW(CHI_ARROW_CURSOR_PATH)?, OCR_NORMAL)?;
-            SetSystemCursor(LoadCursorFromFileW(CHI_IBEAM_CURSOT_PATH)?, OCR_IBEAM)?;
+            SetSystemCursor(LoadCursorFromFileW(CHI_IBEAM_CURSOR_PATH)?, OCR_IBEAM)?;
+            SetSystemCursor(LoadCursorFromFileW(CHI_LINK_CURSOR_PATH)?, OCR_HAND)?;
         }
         self.is_cn = true;
 
@@ -48,6 +53,7 @@ impl Cursor {
         unsafe {
             SetSystemCursor(LoadCursorFromFileW(ORI_ARROW_CURSOR_PATH)?, OCR_NORMAL)?;
             SetSystemCursor(LoadCursorFromFileW(ORI_IBEAM_CURSOR_PATH)?, OCR_IBEAM)?;
+            SetSystemCursor(LoadCursorFromFileW(ORI_LINK_CURSOR_PATH)?, OCR_HAND)?;
         }
 
         Ok(())
