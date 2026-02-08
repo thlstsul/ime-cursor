@@ -6,7 +6,7 @@ description = "使用鼠标图像显示当前输入法是否中文"
 
 [dependencies]
 anyhow = "1.0.100"
-euro-focus = "0.2.0"
+focus-tracker = "0.0.2"
 rdev = { version = "0.5.3", features = ["unstable_grab"] }
 windows = { version = "0.62.2", features = [
     "Win32_Foundation",
