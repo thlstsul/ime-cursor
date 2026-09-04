@@ -1,12 +1,12 @@
 [package]
 name = "ime-cursor"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "使用鼠标图像显示当前输入法是否中文"
 
 [dependencies]
-anyhow = "1.0.100"
-euro-focus = "0.2.0"
+anyhow = "1.0.104"
+wintrack = "1.0.1"
 rdev = { version = "0.5.3", features = ["unstable_grab"] }
 windows = { version = "0.62.2", features = [
     "Win32_Foundation",

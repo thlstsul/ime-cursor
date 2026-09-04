@@ -1,6 +1,6 @@
 use anyhow::Result;
-use euro_focus::subscribe_focus_changes;
 use rdev::{EventType, Key, listen};
+use wintrack::WindowEventKind;
 
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
@@ -70,9 +70,16 @@ impl Monitor {
 
     fn listen_window(sender: Sender<MayChangeIME>) -> JoinHandle<()> {
         thread::spawn(move || {
-            let receiver = subscribe_focus_changes().expect("启动窗口监听失败");
+            wintrack::try_hook().expect("启动窗口监听失败");
 
-            while receiver.recv().is_ok() {
+            let (tx, rx) = std::sync::mpsc::channel();
+            wintrack::set_callback(Box::new(move |event| {
+                if event.kind == WindowEventKind::ForegroundWindowChanged {
+                    let _ = tx.send(());
+                }
+            }));
+
+            while rx.recv().is_ok() {
                 let _ = sender.send(MayChangeIME);
             }
         })
