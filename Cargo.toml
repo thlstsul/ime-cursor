@@ -6,11 +6,10 @@ description = "使用鼠标图像显示当前输入法是否中文"
 
 [dependencies]
 anyhow = "1.0.104"
-wintrack = "1.0.1"
-rdev = { version = "0.5.3", features = ["unstable_grab"] }
 windows = { version = "0.62.2", features = [
     "Win32_Foundation",
     "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Accessibility",
     "Win32_Graphics_Gdi",
     "Win32_UI_Input_Ime",
     "Win32_UI_Input_KeyboardAndMouse",

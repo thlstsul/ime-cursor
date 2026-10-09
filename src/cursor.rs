@@ -34,13 +34,18 @@ pub struct Cursor {
 }
 
 impl Cursor {
+    /// 当前光标对应的输入法状态（true = 中文光标）
+    pub fn is_cn(&self) -> bool {
+        self.is_cn
+    }
+
     pub fn new() -> Result<Self> {
         Self::reset_cursor()?;
 
         Ok(Cursor { is_cn: false })
     }
 
-    pub fn set_chinesn_cursor(&mut self) -> Result<()> {
+    pub fn set_chinese_cursor(&mut self) -> Result<()> {
         if self.is_cn {
             return Ok(());
         }
