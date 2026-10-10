@@ -106,12 +106,14 @@ impl Monitor {
 
     fn listen_keyboard(sender: Sender<MayChangeIME>) -> JoinHandle<()> {
         thread::spawn(move || {
-            // FFI 回调不能捕获环境，把 sender 放进静态槽供回调取用
-            let Ok(mut slot) = KEYBOARD_SENDER.lock() else {
-                eprintln!("KEYBOARD_SENDER 锁中毒，键盘监听未启动");
-                return;
-            };
-            *slot = Some(sender);
+            // 注意：guard 必须在安装钩子前释放，否则回调在同线程重入加锁会死锁
+            {
+                let Ok(mut slot) = KEYBOARD_SENDER.lock() else {
+                    eprintln!("KEYBOARD_SENDER 锁中毒，键盘监听未启动");
+                    return;
+                };
+                *slot = Some(sender);
+            }
 
             let hook = unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), None, 0) };
             let Ok(hook) = hook else {
@@ -138,12 +140,14 @@ impl Monitor {
 
     fn listen_window(sender: Sender<MayChangeIME>) -> JoinHandle<()> {
         thread::spawn(move || {
-            // FFI 回调不能捕获环境，把 sender 放进静态槽供回调取用
-            let Ok(mut slot) = WINDOW_SENDER.lock() else {
-                eprintln!("WINDOW_SENDER 锁中毒，窗口监听未启动");
-                return;
-            };
-            *slot = Some(sender);
+            // 注意：guard 必须在安装钩子前释放，否则回调在同线程重入加锁会死锁
+            {
+                let Ok(mut slot) = WINDOW_SENDER.lock() else {
+                    eprintln!("WINDOW_SENDER 锁中毒，窗口监听未启动");
+                    return;
+                };
+                *slot = Some(sender);
+            }
 
             // 仅关心前台窗口变化事件；事件范围 min..=max 必须连续
             let hook = unsafe {
